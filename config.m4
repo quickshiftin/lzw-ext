@@ -1,21 +1,9 @@
 dnl $Id$
 dnl config.m4 for extension lzw
+dnl
 
-dnl Comments in this file start with the string 'dnl'.
-dnl Remove where necessary. This file will not work
-dnl without editing.
-
-dnl If your extension references something external, use with:
-
-dnl PHP_ARG_WITH(lzw, for lzw support,
-dnl Make sure that the comment is aligned:
-dnl [  --with-lzw             Include lzw support])
-
-dnl Otherwise use enable:
-
-dnl PHP_ARG_ENABLE(lzw, whether to enable lzw support,
-dnl Make sure that the comment is aligned:
-dnl [  --enable-lzw           Enable lzw support])
+PHP_ARG_ENABLE(lzw, whether to enable lzw support,
+[  --enable-lzw           Enable lzw support])
 
 if test "$PHP_LZW" != "no"; then
   dnl Write more examples of tests here...
