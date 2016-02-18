@@ -30,6 +30,6 @@ Installation is the same as any PHP extension
 * Download the source
 * `cd` into the unpacked source directory
 * `phpize`
-* `./configure --enable-lzw
+* `./configure --enable-lzw`
 * `make`
 * `sudo make install`
