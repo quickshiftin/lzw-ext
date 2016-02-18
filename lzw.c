@@ -27,6 +27,7 @@
 #include "ext/standard/info.h"
 #include "php_lzw.h"
 
+#include    <libgen.h>
 #include	<stdint.h>
 #include	<stdio.h>
 #include	<stdlib.h>
@@ -538,34 +539,6 @@ PHP_INI_END()
 */
 /* }}} */
 
-/* Remove the following function when you have successfully modified config.m4
-   so that your module can be compiled into PHP, it exists only for testing
-   purposes. */
-
-/* Every user-visible function in PHP should document itself in the source */
-/* {{{ proto string confirm_lzw_compiled(string arg)
-   Return a string to confirm that the module is compiled in */
-PHP_FUNCTION(confirm_lzw_compiled)
-{
-	char *arg = NULL;
-	int arg_len, len;
-	char *strg;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &arg, &arg_len) == FAILURE) {
-		return;
-	}
-
-	len = spprintf(&strg, 0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "lzw", arg);
-	RETURN_STRINGL(strg, len, 0);
-}
-/* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and 
-   unfold functions in source code. See the corresponding marks just before 
-   function definition, where the functions purpose is also documented. Please 
-   follow this convention for the convenience of others editing your code.
-*/
-
-
 /* {{{ php_lzw_init_globals
  */
 /* Uncomment this function if you have INI entries
@@ -587,6 +560,118 @@ PHP_MINIT_FUNCTION(lzw)
 	return SUCCESS;
 }
 /* }}} */
+
+/* {{{ proto bool lzw_decompress_file( string inputPath, string outpuFileName)
+       De-compress input file and write it to output file */
+PHP_FUNCTION(lzw_decompress_file)
+{
+    char *inputPath = NULL, *outputPath = NULL;
+    int inputPathLength, outputPathLength;
+
+    /* parse parameters */
+    if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss",
+        &inputPath, &inputPathLength,
+        &outputPath, &outputPathLength) == FAILURE) {
+        return;
+    } 
+
+    /* Bail if the input file DNE */
+    struct stat buffer;
+    if(stat(inputPath, &buffer) != 0) {
+        RETURN_FALSE;
+    }
+
+    /* Bail if the directory to the output file DNE */
+    struct stat s;
+    char *outputPathCopy;
+    outputPathCopy = strdup(outputPath);
+    int err = stat(dirname(outputPathCopy), &s);
+    if(err == -1 || !S_ISDIR(s.st_mode)) {
+        RETURN_FALSE;
+    }
+
+    // TODO Ensure the flags to these open() calls are solid
+    //      Also, consider using something more appropriate from PHP libraries
+    int fdIn  = open(inputPath, O_RDONLY|O_BINARY);
+    int fdOut = open(outputPath, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,0600);
+
+    if(fdIn == -1) {
+        if(fdOut > -1) {
+            close(fdOut);
+        }
+        RETURN_FALSE;
+    }
+
+    if(fdOut == -1) {
+        if(fdIn > -1) {
+            close(fdIn);
+        }
+        RETURN_FALSE;
+    }
+ 
+    decompress(fdIn, fdOut);
+
+    close(fdIn);
+    close(fdOut);
+
+    RETURN_TRUE;
+}
+
+/* {{{ proto bool lzw_compress_file( string inputPath, string outpuFileName)
+       Compress input file and write it to output file */
+PHP_FUNCTION(lzw_compress_file)
+{
+    char *inputPath = NULL, *outputPath = NULL;
+    int inputPathLength, outputPathLength;
+
+    /* parse parameters */
+    if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss",
+        &inputPath, &inputPathLength,
+        &outputPath, &outputPathLength) == FAILURE) {
+        return;
+    } 
+
+    /* Bail if the input file DNE */
+    struct stat buffer;
+    if(stat(inputPath, &buffer) != 0) {
+        RETURN_FALSE;
+    }
+
+    /* Bail if the directory to the output file DNE */
+    struct stat s;
+    char *outputPathCopy;
+    outputPathCopy = strdup(outputPath);
+    int err = stat(dirname(outputPathCopy), &s);
+    if(err == -1 || !S_ISDIR(s.st_mode)) {
+        RETURN_FALSE;
+    }
+
+    // TODO Ensure the flags to these open() calls are solid
+    //      Also, consider using something more appropriate from PHP libraries
+    int fdIn  = open(inputPath, O_RDONLY|O_BINARY);
+    int fdOut = open(outputPath, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,0600);
+
+    if(fdIn == -1) {
+        if(fdOut > -1) {
+            close(fdOut);
+        }
+        RETURN_FALSE;
+    }
+
+    if(fdOut == -1) {
+        if(fdIn > -1) {
+            close(fdIn);
+        }
+        RETURN_FALSE;
+    }
+ 
+    compress(fdIn, fdOut);
+
+    close(fdIn);
+    close(fdOut);
+
+    RETURN_TRUE;
+}
 
 /* {{{ PHP_MSHUTDOWN_FUNCTION
  */
@@ -631,12 +716,25 @@ PHP_MINFO_FUNCTION(lzw)
 }
 /* }}} */
 
+/* {{{ arginfo */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_lzw_compress_file, 0, 0, 2)
+    ZEND_ARG_INFO(0, inputPath)
+    ZEND_ARG_INFO(0, outputPath)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_lzw_decompress_file, 0, 0, 2)
+    ZEND_ARG_INFO(0, inputPath)
+    ZEND_ARG_INFO(0, outputPath)
+ZEND_END_ARG_INFO()
+/* }}} */
+
 /* {{{ lzw_functions[]
  *
  * Every user visible function must have an entry in lzw_functions[].
  */
 const zend_function_entry lzw_functions[] = {
-	PHP_FE(confirm_lzw_compiled,	NULL)		/* For testing, remove later. */
+    PHP_FE(lzw_compress_file, arginfo_lzw_compress_file)
+    PHP_FE(lzw_decompress_file, arginfo_lzw_decompress_file)
 	PHP_FE_END	/* Must be the last line in lzw_functions[] */
 };
 /* }}} */
