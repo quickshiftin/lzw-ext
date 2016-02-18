@@ -8,6 +8,7 @@ Overview
 
 These functions use the LZW implementation from https://github.com/vapier/ncompress
 
+```
 /**
  * Compress $inputPath file using LZW compression.
  * Write the compressed output to $outputPath.
@@ -19,6 +20,7 @@ bool function lzw_compress_file($inputPath, $outputPath);
  * Write the decompressed file to $outputPath.
  */
 bool function lzw_decompress_file($inputPath, $outputPath);
+```
 
 Installation
 ------------
